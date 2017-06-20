@@ -88,7 +88,7 @@ player = {
  pico-8 init
 ]]
 function _init() 
- game_camera.y = -20
+ game_camera.y = -64
  player.x = 4
  player.y = -2
  actor_set_animation(player, 'idle')
@@ -138,6 +138,7 @@ end
   ]]
 function _draw()
  cls()
+ rectfill(0, 0, 128, 128, 1) -- navy background
  game_camera:on_draw()
 
  mapdraw(0, 0, 0, 0, 16, 8)
