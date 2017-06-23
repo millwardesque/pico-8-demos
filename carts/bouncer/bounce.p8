@@ -1,36 +1,116 @@
 pico-8 cartridge // http://www.pico-8.com
 version 8
 __lua__
+
+world_config = {
+ cell_width = 8,
+ cell_height = 8,
+}
+
+--[[
+utility functions
+]]
+utils = {}
+
+--[[
+converts a world position to map cell coords
+]]
+utils.world_to_cell = function(world)
+ return vec2.new(flr(world.x / world_config.cell_width), flr(world.y / world_config.cell_height))
+end
+
+--[[
+converts a map cell coord to four world positions corresponding to its corners
+]]
+utils.cell_to_world = function(cell)
+ local top_left = vec2.new(cell.x * world_config.cell_width, cell.y * world_config.cell_height)
+ return utils.make_rect(top_left, world_config.cell_width - 1, world_config.cell_height - 1)
+end
+
+--[[
+makes a rect consisting of four corners in world-space given the top-left corner and a width / height
+]]
+utils.make_rect = function(top_left, width, height)
+ local r = {
+  top_left = top_left,
+  top_right = vec2.sum(top_left, vec2.new(width, 0)),
+  bottom_right = vec2.sum(top_left, vec2.new(width, height)),
+  bottom_left = vec2.sum(top_left, vec2.new(0, height)),
+ }
+ return r
+end
+
+--[[
+performs a shallow copy of a table
+]]
+utils.shallow_copy = function(obj) 
+ local copy = {}
+ for key, value in pairs(obj) do
+  copy[key] = value
+ end
+ return copy
+end
+
+--[[
+2d vector class
+]]
+vec2 = {
+ x = 0,
+ y = 0,
+}
+function vec2:to_string()
+ return "("..self.x..", "..self.y..")"
+end
+function vec2:add(v) 
+ self.x += v.x;
+ self.y += v.y;
+end
+function vec2:sub(v) 
+ self.x -= v.x;
+ self.y -= v.y;
+end
+vec2.new = function(x, y) 
+ local new_vector = utils.shallow_copy(vec2)
+ new_vector.x = x
+ new_vector.y = y
+ return new_vector
+end
+vec2.clone = function(v) 
+ return vec2.new(v.x, v.y)
+end
+vec2.sum = function(v1, v2)
+ return vec2.new(v1.x + v2.x, v1.y + v2.y)
+end
+vec2.diff = function(v1, v2)
+ return vec2.new(v1.x - v2.x, v1.y - v2.y)
+end
+
 --[[
 game camera
 ]]
 game_camera = {
- x = 0,
- y = 0,
+ position = vec2.new(0, 0),
+ tracking = null,
+ width = 128,
+ height = 128
 }
+function game_camera:on_update()
+ if self.tracking != null and self.tracking.position then
+  self.position = vec2.diff(self.tracking.position, vec2.new(flr(self.width / 2), flr(self.height / 2)))
+ end
+end
 function game_camera:on_draw()
- camera(self.x, self.y)
+ camera(self.position.x, self.position.y)
 end
 function game_camera:default()
  camera()
 end
 
 --[[
-utility functions
-]]
-utils = {}
-utils.world_to_cell = function(world)
- cell = {}
- cell.x = flr(world.x / 8);
- cell.y = flr(world.y / 8);
- return cell
-end
-
---[[
 physics subsystem
 ]]
 physics = {
- gravity = { x = 0, y = 3, },
+ gravity = vec2.new(0, 3),
 }
 
 --[[
@@ -50,28 +130,26 @@ collision = {
  --[[
  true if the world position is solid
  ]]
- is_solid_position = function(position)
+ collide_with_world = function(position)
   local cell_coords = utils.world_to_cell(position)
-  return collision.is_solid_cell(cell_coords)
+  local col_info = {
+   did_collide = collision.is_solid_cell(cell_coords),
+   cell = cell_coords
+  }
+  return col_info
  end,
 
  --[[
  true if a box intersects a solid map tile
  ]]
  intersects_solid = function(top_left, width, height)
-  local top_right = { x = top_left.x + width, y = top_left.y }
-  local bottom_left = { x = top_left.x, y = top_left.y + height }
-  local bottom_right = { x = top_left.x + width, y = top_left.y + height}
+  local box = utils.make_rect(top_left, width, height)
   local intersection = {
-   top_left = collision.is_solid_position(top_left),
-   top_right = collision.is_solid_position(top_right),
-   bottom_left = collision.is_solid_position(bottom_left),
-   bottom_right = collision.is_solid_position(bottom_right),
+   top_left = collision.collide_with_world(box.top_left),
+   top_right = collision.collide_with_world(box.top_right),
+   bottom_left = collision.collide_with_world(box.bottom_left),
+   bottom_right = collision.collide_with_world(box.bottom_right),
   }
-  intersection.top = intersection.top_left and intersection.top_right
-  intersection.right = intersection.top_right and intersection.bottom_right
-  intersection.bottom = intersection.bottom_left or intersection.bottom_right
-  intersection.left = intersection.top_left and intersection.bottom_left
   return intersection
  end,
 }
@@ -86,32 +164,65 @@ animation = {
 
 -- player definition
 player = {
- x = 0,
- y = 0,
+ position = vec2.new(0, 0),
  width = 8,
  height =8,
  sprite = 0,
- speed = 2,
+ speed = 1,
  jump = 6,
  jump_counter = 0,
  jump_max_length = 6,
- moving = false,
+ is_jumping = false,
+ state = "idle",
  animations = {
   current_index = 0,
   current_animation = 'idle',
-  move = {0, 1, 2, 1},
-  idle = {0, 0, 0, 0, 5, 5, 5, 5},
- }
+  idle = {0, 0, 0, 0, 5, 5, 5, 5, },
+  walk = {0, 1, 2, 1, },
+  jump = {0, 4, 3, 3, },
+ },
 }
+function player:set_state(state)
+ if state == "idle" then
+  actor_set_animation(self, 'idle')
+  is_jumping = false
+  jump_counter = 0
+ elseif state == "walking" then
+  actor_set_animation(self, 'walk')
+  is_jumping = false
+  jump_counter = 0
+ end
+end
+
+function player:foot()
+ return vec2.sum(self.position, vec2.new(flr((self.width - 1) / 2), self.height - 1))
+end
+
+function player:head()
+ return vec2.sum(self.position, vec2.new(flr((self.width - 1) / 2), 0))
+end
+
+function player:left_hand()
+ return vec2.sum(self.position, vec2.new(0, flr((self.height - 1) / 2)))
+end
+
+function player:right_hand()
+ return vec2.sum(self.position, vec2.new(self.width - 1, flr((self.height - 1) / 2)))
+end
+
+function player:is_on_ground()
+ local pos_under_foot = vec2.sum(self:foot(), vec2.new(0, 1))
+  return collision.collide_with_world(pos_under_foot).did_collide
+end
 
 --[[
  pico-8 init
 ]]
 function _init() 
- game_camera.y = -64
- player.x = 4
- player.y = -2
- actor_set_animation(player, 'idle')
+ game_camera.position.y = -64
+ game_camera.tracking = player
+ player.position = vec2.new(4, 0)
+ player:set_state('idle')
 end
 
 --[[
@@ -122,48 +233,74 @@ function _update()
  
  -- user input.
  -- player controls
- local is_moving = false
- local new_position = { x = player.x, y = player.y }
+ local new_position = vec2.clone(player.position)
  if btn(0) then
-  is_moving = true
   new_position.x -= player.speed
  elseif btn(1) then
-  is_moving = true
   new_position.x += player.speed
  end
 
+ local jump_request = false
  if btn(4) then
-  if player.jump_counter < player.jump_max_length then
+  jump_request = true
+ end
+
+ if player.is_jumping and player:is_on_ground() then
+  player.is_jumping = false
+  player.jump_counter = 0
+ elseif jump_request then
+  if player:is_on_ground() then
+   player.is_jumping = true
+   actor_set_animation(player, 'jump')
+
+   new_position.y -= player.jump
+   player.jump_counter += 1
+  elseif player.is_jumping and player.jump_counter < player.jump_max_length then
    new_position.y -= player.jump
    player.jump_counter += 1
   end
- else 
-  player.jump_counter = 0
  end
 
- new_position.x += physics.gravity.x
- new_position.y += physics.gravity.y
+ new_position:add(physics.gravity)
 
  -- update the player position
- local tile_intersection = collision.intersects_solid(new_position, player.width, player.height)
- if (not tile_intersection.left and new_position.x < player.x) or (not tile_intersection.right and new_position.x > player.x) then
-  player.x = new_position.x
- else
-  is_moving = false
+ player.position = new_position
+
+ -- adjust the player position based on collisions
+ local ground_col = collision.collide_with_world(player:foot())
+ if ground_col.did_collide then
+  player.position.y = utils.cell_to_world(ground_col.cell).top_left.y - player.height;
  end
 
- if (not tile_intersection.top and new_position.y < player.y) or (not tile_intersection.bottom and new_position.y > player.y) then
-  player.y = new_position.y
+ local ceil_col = collision.collide_with_world(player:head())
+ if ceil_col.did_collide then
+  player.position.y = utils.cell_to_world(ceil_col.cell).bottom_left.y + 1; -- add one to move to the next cell
  end
 
- if is_moving then
-  actor_update_move(player)
- else
-  actor_update_idle(player)
+ local left_col = collision.collide_with_world(player:left_hand())
+ if left_col.did_collide then
+  player.position.x = utils.cell_to_world(left_col.cell).top_right.x + 1; -- add one to move to the next cell
+ end
+
+ local right_col = collision.collide_with_world(player:right_hand())
+ if right_col.did_collide then
+  player.position.x = utils.cell_to_world(right_col.cell).top_left.x - player.width;
+ end
+
+ if player.state == "walking" then
+  if not player.is_jumping and new_position.x == 0 and new_position.y == 0 then
+   player:set_state('idle')
+  end
+ elseif player.state == "idle" then
+  if not player.is_jumping and (new_position.x != 0 or new_position.y != 0) then
+   player:set_state('walking')
+  end
  end
 
  -- update the player animation.
  actor_next_animation_cell(player)
+
+ game_camera:on_update()
 end
 
 --[[
@@ -175,7 +312,7 @@ function _draw()
  game_camera:on_draw()
 
  mapdraw(0, 0, 0, 0, 16, 8)
- spr(player.sprite, player.x, player.y)
+ spr(player.sprite, player.position.x, player.position.y)
 
  game_camera:default()
  print_debug()
@@ -195,26 +332,6 @@ function actor_next_animation_cell(actor)
 
    actor.sprite = active_animation[actor.animations.current_index] 
   end 
-end
-
---[[
- update routine for actors in a 'move' state
-]]
-function actor_update_move(actor)
-	if actor.moving == false then
-  actor_set_animation(actor, 'move');
-	end
-	actor.moving = true
-end
-
---[[
- update routine for actors in an 'idle' state
-]]
-function actor_update_idle(actor)
-	if actor.moving == true then
-		actor_set_animation(actor, 'idle');
-	end
-	actor.moving = false
 end
 
 --[[
@@ -242,25 +359,30 @@ function actor_set_animation(actor, animation_name)
  actor.animations.current_index = 1
 end
 
-function actor_is_moving(actor)
- return actor.moving
-end
-
 function print_debug()
  color(7)
- local player_cell = utils.world_to_cell(player)
- local player_position = "player ("..player.x..", "..player.y..") (c"..player_cell.x..", c"..player_cell.y..")"
- print(player_position)
+ print("p1: "..world_coord_summary(player.position))
+ print("p1-foot: "..world_coord_summary(player:foot()))
 
- print("jump: "..player.jump_counter)
-
- local is_solid = ""
- if collision.intersects_solid(player, player.width, player.height) then
-  is_solid = "yes" 
- else
-  is_solid = "no"
+ local is_jumping = "no"
+ if player.is_jumping then
+  is_jumping = "yes"
  end
- print("solid: "..is_solid)
+ print("jumping: "..is_jumping.." c: "..player.jump_counter)
+
+ local is_on_ground = "no"
+ if player:is_on_ground() then
+  is_on_ground = "yes"
+ end
+ print("on-ground: "..is_on_ground)
+end
+
+--[[
+summarizes a world position and cell coords
+]]
+function world_coord_summary(world_coord) 
+ local cell = utils.world_to_cell(world_coord)
+ return world_coord:to_string().." c: "..cell:to_string()
 end
 
 __gfx__
