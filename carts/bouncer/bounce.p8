@@ -163,6 +163,54 @@ animation subsystem
 animation = {
  frame_length = 4,
  frame_elapsed = 0,
+
+ --[[
+  true if the current frame is one on which we can update the animation frame.
+ ]]
+ can_change_animation_frame = function()
+  return animation.frame_elapsed == 0
+ end,
+
+ --[[
+  updates the animation subsystem.
+ ]]
+ on_update = function () 
+  animation.frame_elapsed += 1
+  if animation.frame_elapsed == animation.frame_length then 
+   animation.frame_elapsed = 0
+  end
+ end,
+}
+
+--[[
+debug subsystem
+]]
+debug = {
+ print_summary = function() 
+  color(7)
+  print("p1: "..debug.world_coord_summary(player.position).." ("..player.state..")")
+  print("p1-foot: "..debug.world_coord_summary(player:foot()))
+
+  local is_jumping = "no"
+  if player.is_jumping then
+   is_jumping = "yes"
+  end
+  print("jumping: "..is_jumping.." c: "..player.jump_counter)
+
+  local is_on_ground = "no"
+  if player:is_on_ground() then
+   is_on_ground = "yes"
+  end
+  print("on-ground: "..is_on_ground)
+ end,
+
+ --[[
+ summarizes a world position and cell coords
+ ]]
+ world_coord_summary = function (world_coord) 
+  local cell = utils.world_to_cell(world_coord)
+  return world_coord:to_string().." c: "..cell:to_string()
+ end
 }
 
 -- player definition
@@ -180,18 +228,18 @@ player = {
  animations = {
   current_index = 0,
   current_animation = 'idle',
-  idle = {0, 0, 0, 0, 1, 1, 1, 1, },
+  idle = {1, 1, 1, 1, 0, 0, 0, 0, },
   walk = {0, 1, 2, 1, },
-  jump = {0, 4, 3, 3, },
+  jump = {0, 4, 3, 4, },
  },
 }
 function player:set_state(state)
  if state == "idle" then
-  actor_set_animation(self, 'idle')
+  self:set_animation('idle')
   is_jumping = false
   jump_counter = 0
  elseif state == "walking" then
-  actor_set_animation(self, 'walk')
+  self:set_animation('walk')
   is_jumping = false
   jump_counter = 0
  end
@@ -220,6 +268,31 @@ function player:is_on_ground()
   return collision.collide_with_world(pos_under_foot).did_collide
 end
 
+function player:set_animation(animation_name) 
+ self.animations.current_animation = animation_name
+ self.animations.current_index = 1
+end
+
+--[[
+ moves an actor to its next animation cell
+ ]]
+function player:next_animation_cell()
+  local active_animation = self.animations[self.animations.current_animation]
+
+  if animation.can_change_animation_frame() then 
+   self.animations.current_index += 1
+   if self.animations.current_index > #active_animation then
+    if self.animations.current_animation == "jump" then -- don't loop the jump animation
+     self.animations.current_index = #active_animation
+    else
+     self.animations.current_index = 1
+    end
+   end
+
+   self.sprite = active_animation[self.animations.current_index] 
+  end 
+end
+
 --[[
  pico-8 init
 ]]
@@ -234,7 +307,7 @@ end
  pico-8 update.
 ]]
 function _update()
- animation_update()
+ animation.on_update()
  
  -- user input.
  -- player controls
@@ -259,7 +332,7 @@ function _update()
  elseif jump_request then
   if player:is_on_ground() then
    player.is_jumping = true
-   actor_set_animation(player, 'jump')
+   player:set_animation('jump')
 
    new_position.y -= player.jump
    player.jump_counter += 1
@@ -312,8 +385,7 @@ function _update()
  end
 
  -- update the player animation.
- actor_next_animation_cell(player)
-
+ player:next_animation_cell()
  game_camera:on_update()
 end
 
@@ -331,77 +403,6 @@ function _draw()
  game_camera:default()
  debug.print_summary()
 end
-
---[[
- moves an actor to its next animation cell
- ]]
-function actor_next_animation_cell(actor)
-  local active_animation = actor.animations[actor.animations.current_animation]
-
-  if can_change_animation_frame() then 
-   actor.animations.current_index += 1
-   if actor.animations.current_index > #active_animation then
-      actor.animations.current_index = 1
-   end
-
-   actor.sprite = active_animation[actor.animations.current_index] 
-  end 
-end
-
---[[
- true if the current frame is one on which we can update the animation frame.
-]]
-function can_change_animation_frame()
-	return animation.frame_elapsed == 0
-end
-
---[[
- updates the animation subsystem.
-]]
-function animation_update() 
- animation.frame_elapsed += 1
- if animation.frame_elapsed == animation.frame_length then 
-  animation.frame_elapsed = 0
- end
-end
-
---[[
- sets a new animation on an actor.
-  ]]
-function actor_set_animation(actor, animation_name) 
- actor.animations.current_animation = animation_name
- actor.animations.current_index = 1
-end
-
-debug = {
- print_summary = function() 
-  color(7)
-  print("p1: "..debug.world_coord_summary(player.position).." ("..player.state..")")
-  print("p1-foot: "..debug.world_coord_summary(player:foot()))
-
-  local is_jumping = "no"
-  if player.is_jumping then
-   is_jumping = "yes"
-  end
-  print("jumping: "..is_jumping.." c: "..player.jump_counter)
-
-  local is_on_ground = "no"
-  if player:is_on_ground() then
-   is_on_ground = "yes"
-  end
-  print("on-ground: "..is_on_ground)
- end,
-
- world_coord_summary = function (world_coord) 
-  local cell = utils.world_to_cell(world_coord)
-  return world_coord:to_string().." c: "..cell:to_string()
- end
-}
-
---[[
-summarizes a world position and cell coords
-]]
-
 
 __gfx__
 00000000000000000000000000888800000880000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
