@@ -2,6 +2,63 @@ pico-8 cartridge // http://www.pico-8.com
 version 8
 __lua__
 
+-- performs a shallow copy of a table
+utils = {
+ shallow_copy = function(obj) 
+  local copy = {}
+  for key, value in pairs(obj) do
+   copy[key] = value
+  end
+  return copy
+ end
+}
+
+-- 2d vector
+local vec2_meta = {}
+function vec2_meta.__add(a, b)
+ return make_vec2(a.x + b.x, a.y + b.y)
+end
+
+function vec2_meta.__sub(a, b)
+ return make_vec2(a.x - b.x, a.y - b.y)
+end
+
+function vec2_meta.__mul(a, b)
+ if type(a) == "number" then
+  return make_vec2(a * b.x, a * b.y)
+ elseif type(b) == "number" then
+  return make_vec2(b * a.x, b * a.y)
+ else
+  return make_vec2(a.x * b.x, a.y * b.y)
+ end
+end
+
+function vec2_meta.__div(a, b) 
+ make_vec2(a.x / b, a.y / b)
+end
+
+function vec2_meta.__eq(a, b) 
+ return a.x == b.x and a.y == b.y
+end
+
+function make_vec2(x, y) 
+ local table = {
+  x = x,
+  y = y,
+ }
+ setmetatable(table, vec2_meta)
+ return t;
+end
+
+function vec2_magnitude(v)
+ return sqrt(v.x ^ 2 + v.y ^ 2)
+end
+
+function vec2_normalized(v) 
+ local mag = vec2_magnitude(v)
+ return make_vec2(v.x / mag, v.y / mag)
+end
+
 ring = {
  x = 32,
  y = 44,
@@ -120,25 +177,20 @@ common_wrestler_colours = {
  }
 }
 
-wrestlers = {
- {
-  x = 48,
-  y = 48,
+function make_wrestler(x, y, colours) 
+ local t = {
+  x = x, 
+  y = y,
   sprite = 1,
-  colours = common_wrestler_colours.hulk,
- },
- {
-  x = 64,
-  y = 64,
-  sprite = 1,
-  colours = common_wrestler_colours.sting,
- },
- {
-  x = 64,
-  y = 52,
-  sprite = 1,
-  colours = common_wrestler_colours.vader,
+  colours = colours
  }
+ return t
+end
+
+wrestlers = {
+ make_wrestler(48, 48, common_wrestler_colours.hulk),
+ make_wrestler(64, 64, common_wrestler_colours.sting),
+ make_wrestler(64, 52, common_wrestler_colours.vader)
 }
 
 function draw_wrestler(wrestler)
