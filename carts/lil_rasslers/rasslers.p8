@@ -47,7 +47,7 @@ function make_vec2(x, y)
   y = y,
  }
  setmetatable(table, vec2_meta)
- return t;
+ return table;
 end
 
 function vec2_magnitude(v)
@@ -177,21 +177,56 @@ common_wrestler_colours = {
  }
 }
 
-function make_wrestler(x, y, colours) 
+function make_wrestler(name, x, y, colours) 
  local t = {
-  x = x, 
-  y = y,
+  name = name,
+  position = make_vec2(x, y),
   sprite = 1,
-  colours = colours
+  colours = colours,
+  target = nil,
+  speed = 2
  }
  return t
 end
 
 wrestlers = {
- make_wrestler(48, 48, common_wrestler_colours.hulk),
- make_wrestler(64, 64, common_wrestler_colours.sting),
- make_wrestler(64, 52, common_wrestler_colours.vader)
+ make_wrestler("hulk", 48, 48, common_wrestler_colours.hulk),
+ make_wrestler("sting", 64, 64, common_wrestler_colours.sting),
+ make_wrestler("vader", 64, 52, common_wrestler_colours.vader)
 }
+
+function update_wrestler(wrestler) 
+ if (wrestler.target == nil) then
+  wrestler.target = find_target(wrestler)
+ end
+
+ if (wrestler.target != nil) then
+  local dir_to_target = vec2_normalized(wrestler.target.position - wrestler.position)
+  wrestler.position += dir_to_target * wrestler.speed
+ end
+end
+
+function find_target(wrestler)
+ local closest = nil
+ local closest_dist = 0
+ for w in all(wrestlers) do
+  if (w != wrestler) then
+   local dist = vec2_magnitude(wrestler.position - w.position)
+   if (closest == nil or dist < closest_dist) then
+    closest = w
+    closest_dist = dist
+   end 
+  end
+ end
+
+ return closest
+end
+
+function _update()
+ for w in all(wrestlers) do
+  update_wrestler(w)
+ end
+end
 
 function draw_wrestler(wrestler)
  pal()
@@ -208,7 +243,7 @@ function draw_wrestler(wrestler)
   end
  end
 
- spr(wrestler.sprite, wrestler.x, wrestler.y)
+ spr(wrestler.sprite, wrestler.position.x, wrestler.position.y)
 end
 
 function draw_rect(x, y, width, height, colour) 
@@ -227,6 +262,17 @@ function _draw()
  palt()
  for w in all(wrestlers) do
   draw_wrestler(w)
+ end
+
+ camera()
+ color(7)
+ local i = 0
+ for w in all(wrestlers) do
+  local target_name = 'none'
+  if w.target != nil then
+   target_name = w.target.name
+  end
+  print(w.name..": "..target_name)
  end
 end
 
