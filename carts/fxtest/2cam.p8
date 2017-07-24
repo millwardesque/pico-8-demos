@@ -86,14 +86,6 @@ function _update()
  end
 end
 
-function list_tostring(list)
- local str = ""
- for i = 1, #list do
-  str = str..i.."="..list[i].y..","
- end
- return str
-end
-
 function quicksort_y(list)
  quicksort_y_helper(list, 1, #list)
 end
@@ -146,7 +138,9 @@ function _draw()
  color(7)
 
  quicksort_y(characters)
- print(list_tostring(characters))
+
+ print("p1: "..p1.y)
+ print("p2: "..p2.y)
 
  for cam in all(cameras) do
   camera_draw_start(cam)

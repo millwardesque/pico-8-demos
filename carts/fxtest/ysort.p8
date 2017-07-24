@@ -16,11 +16,15 @@ list = {
 --     {2, 3, 5, 6, 7, 9, 10, 11, 12}
 sorted = false
 
+p1 = list[2]
+
 function _draw()
  if sorted == false then
   cls()
+  print("p1: "..p1.y)
   quicksort_y(list)
   sorted = true
+  print("p1: "..p1.y)
  end 
 end
 
@@ -33,12 +37,13 @@ function list_tostring(list)
 end
 
 function quicksort_y(list)
+ print("start: "..list_tostring(list))
  quicksort_y_helper(list, 1, #list)
  print("done: "..list_tostring(list))
 end
 
 function quicksort_y_helper(list, low, high)
- print(low.." => "..high.." ["..list_tostring(list).."]")
+ -- print(low.." => "..high.." ["..list_tostring(list).."]")
  if (low < high) then
   local p = quicksort_y_partition(list, low, high)
   -- print("h. p = "..p)
