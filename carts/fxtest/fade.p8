@@ -2,168 +2,96 @@ pico-8 cartridge // http://www.pico-8.com
 version 8
 __lua__
 
-sprites_per_row = 16
-cell_width = 8
-cell_height = 8
-p1 = nil
-p2 = nil
+fade_palettes = {
+ {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15},
+ {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15},
+ {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15},
+ {1,2,3,2,5,6,6,8,4,10, 3,13,13, 8,14},
+ {1,1,5,2,1,5,6,4,2,14, 3, 2, 2, 8, 8},
+ {0,1,5,2,1,5,5,4,2,14, 3, 2, 2, 2, 8},
+ {0,1,1,1,1,1,2,2,1, 8, 1, 1, 1, 1, 2},
+ {0,0,1,0,0,1,1,1,0, 2, 1, 1, 1, 1, 1},
+ {0,0,0,0,0,0,0,0,0, 0, 0, 0, 0, 0, 0},
+}
+fade_ramps = {
+ { 1, 1, 1, 1, 1, 0, 0, 0, 0 },
+ { 2, 2, 2, 2, 1, 1, 1, 0, 0 },
+ { 3, 3, 3, 3, 5, 5, 1, 1, 0 },
+ { 4, 4, 4, 2, 2, 2, 1, 0, 0 },
+ { 5, 5, 5, 5, 1, 1, 1, 0, 0 },
+ { 6, 6, 6, 6, 5, 5, 1, 1, 0 },
+ { 7, 7, 7, 6, 6, 5, 2, 1, 0 },
+ { 8, 8, 8, 8, 4, 4, 2, 1, 0 },
+ { 9, 9, 9, 4, 2, 2, 1, 0, 0 },
+ { 10, 10, 10, 10, 14, 14, 8, 2, 0 },
+ { 11, 11, 11, 3, 3, 3, 1, 1, 0 },
+ { 12, 12, 12, 13, 2, 2, 1, 0, 0 },
+ { 13, 13, 13, 13, 2, 2, 1, 1, 0 },
+ { 14, 14, 14, 8, 8, 2, 1, 1, 0 },
+ { 15, 15, 15, 14, 8, 8, 2, 1, 0 },
+}
 
-function camera_draw_start(cam)
- camera(cam.shoot_x - cam.draw_x, cam.shoot_y - cam.draw_y)
- clip(cam.draw_x, cam.draw_y, cam.draw_width, cam.draw_height)
-end
+max_fade = 9
+fade_level = 1
+frame_counter = 1
+speed = 4
 
-function camera_draw_end(cam)
- camera()
- clip()
-end
+function draw_ramp(ramp, y, size)
+ local x = 8
+ rectfill(0, y, 0 + size - 1, y + size - 1, ramp[fade_level])
 
-function camera_update(cam)
- if cam.target != nil then
-  -- centre the camera on the target
-  cam.shoot_x = cam.target.x - flr(cam.draw_width / 2)
-  cam.shoot_y = cam.target.y - flr(cam.draw_height / 2)
+ for colour in all(ramp) do
+  rectfill(x, y, x + size - 1, y + size - 1, colour)
+  x += size + 1
  end
 end
 
-function make_camera(draw_x, draw_y, draw_width, draw_height, shoot_x, shoot_y, zoom)
- local t = {
-  draw_x = draw_x,
-  draw_y = draw_y,
-  draw_width = draw_width,
-  draw_height = draw_height,
-  shoot_x = shoot_x,
-  shoot_y = shoot_y,
-  zoom = zoom,
-  target = nil
- }
- return t;
+function __init()
+ pal_reset(pal_stack)
 end
 
-cameras = {}
-characters = {}
-move_speed = 2
-
-function _init()
- add(characters, { x = 30, y = 90, sprite = 1 })
- add(characters, { x = 60, y = 90, sprite = 2 })
- p1 = characters[1]
- p2 = characters[2]
-
- add(cameras, make_camera(0, 0, 128, 128, 0, 0, 1)) 
- add(cameras, make_camera(20, 20, 88, 48, 10, 80, 2))
- cameras[2].target = p1
-end
-
-function _update()
- if btn(0) then
-  p1.x -= move_speed
- end
- if btn(1) then
-  p1.x += move_speed
- end
- if btn(2) then
-  p1.y -= move_speed
- end
- if btn(3) then
-  p1.y += move_speed
- end
-
- if btn(4) then
-  cameras[2].zoom += 0.1
- else
-  cameras[2].zoom -= 0.1
- end
-
- if cameras[2].zoom < 2 then
-  cameras[2].zoom = 2
- elseif cameras[2].zoom > 3 then
-  cameras[2].zoom = 3
- end
-
- for cam in all(cameras) do
-  camera_update(cam)
- end
-end
-
-function list_tostring(list)
- local str = ""
- for i = 1, #list do
-  str = str..i.."="..list[i].y..","
- end
- return str
-end
-
-function quicksort_y(list)
- quicksort_y_helper(list, 1, #list)
-end
-
-function quicksort_y_helper(list, low, high)
- if (low < high) then
-  local p = quicksort_y_partition(list, low, high)
-  quicksort_y_helper(list, low, p - 1)
-  quicksort_y_helper(list, p + 1, high)
- end
-end
-
-function quicksort_y_partition(list, low, high)
- local pivot = list[high]
- local i = low - 1
- local temp
- for j = low, high - 1 do
-  if (list[j].y < pivot.y) then
-   i += 1
-   temp = list[j]
-   list[j] = list[i]
-   list[i] = temp
+function _update() 
+ frame_counter += 1
+ if (frame_counter > speed) then
+  frame_counter = 1
+  fade_level += 1
+  if (fade_level > max_fade) then 
+   fade_level = 1
   end
  end
-
- if (list[high].y < list[i + 1].y) then
-  temp = list[high]
-  list[high] = list[i + 1]
-  list[i + 1] = temp
- end
-
- return i + 1
-end
-
-function draw_scene(cam)
- for c in all(characters) do
-  draw_sprite(c.sprite, 1, 1,  c.x, c.y, cam.zoom, cam.zoom, false, false)
- end
-end
-
-function draw_sprite(sprite, sprite_width, sprite_height, dest_x, dest_y, scale_x, scale_y, flip_x, flip_y) 
- local sx = cell_width * (sprite % sprites_per_row)
- local sy = cell_height * (flr(sprite / sprites_per_row))
-
- sspr(sx, sy, sprite_width * cell_width, sprite_height * cell_height, dest_x, dest_y, sprite_width * cell_width * scale_x, sprite_height * cell_height * scale_y, flip_x, flip_y)
 end
 
 function _draw()
  cls()
+
+ local height = 8
+ 
+ spr(1, 15, 15)
+ pal(8, 7)
+ spr(1, 25, 25)
+
+ -- ui
+ pal()
  color(7)
+ camera()
+ clip()
+ print("cpu: "..stat(1))
+ print("fade: "..fade_level)
 
- quicksort_y(characters)
- print(list_tostring(characters))
-
- for cam in all(cameras) do
-  camera_draw_start(cam)
-  draw_scene(cam)
-  camera_draw_end(cam)
+ for i = 0,15 do
+  pal(i, fade_palettes[fade_level][i + 1], 1)
  end
 end
 
 __gfx__
-000000000022220000cccc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000022222200cccccc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700027227200ceccec000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000022222200cccccc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00077000022222200cccccc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00700700022772200cceecc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00000000022222200cccccc000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-000000000022220000cccc0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00000000088888800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0070070008c88c800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000088888800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00077000088888800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+00700700088888800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000c00c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000c00c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

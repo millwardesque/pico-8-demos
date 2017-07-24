@@ -1,0 +1,34 @@
+Setting: Abandoned underground fortress
+Reflective pool in foreground with objects poking out
+Character walking across metal platform 
+Massive servers in background
+Server lights blink green and red
+Security camera monitor w/ scanlines follows player in background
+Sparks on broken equipment
+Water spray from broken pipe
+Pipe drips
+Fade in
+Fade out
+
+Sprites
+- Floor grate tile (1)
+- Water debris (2)
+- Pipe (2 directions + 2 direction-couplings 4 corner pieces)
+- Monitor (2 bezel directions + 4 corner pieces)
+- Sparks / spray
+- Server boxes (2 bezel directions + 4 corner pieces + 3 internal pieces)
+- Character idling and walking (5 frames)
+- Drips
+- Animated blinking lights
+
+Tech
+- Camera for pool reflection
+- Y-sorting
+- Layer-sorting
+- Camera for security monitor
+- Scanlines
+- Walk animation
+- Idle animation
+- Palette animation for blinking lights, sparks, and spray
+- Colour ramp animation for fades
+- Parallax for server layers in background
