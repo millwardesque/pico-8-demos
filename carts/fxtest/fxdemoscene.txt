@@ -3,7 +3,8 @@ Reflective pool in foreground with objects poking out
 Character walking across metal platform 
 Massive servers in background
 Server lights blink green and red
-Security camera monitor w/ scanlines follows player in background
+Security camera monitor follows player in background
+Security camera
 Sparks on broken equipment
 Water spray from broken pipe
 Pipe drips
@@ -20,6 +21,8 @@ Sprites
 - Character idling and walking (5 frames)
 - Drips
 - Animated blinking lights
+- Server screens
+- Security camera
 
 Tech
 - Camera for pool reflection
@@ -32,3 +35,9 @@ Tech
 - Palette animation for blinking lights, sparks, and spray
 - Colour ramp animation for fades
 - Parallax for server layers in background
+
+Pre-reqs
+. Multi-camera rendering
+. Y-sorting
+. Fade in / out
+. Palette animation

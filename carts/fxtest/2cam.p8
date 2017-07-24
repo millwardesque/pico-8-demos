@@ -139,6 +139,7 @@ function _draw()
 
  quicksort_y(characters)
 
+ print("cpu: "..stat(1))
  print("p1: "..p1.y)
  print("p2: "..p2.y)
 
