@@ -12,17 +12,23 @@ Fade in
 Fade out
 
 Sprites
-- Floor grate tile (1)
-- Water debris (2)
-- Pipe (2 directions + 2 direction-couplings 4 corner pieces)
-- Monitor (2 bezel directions + 4 corner pieces)
-- Sparks / spray
-- Server boxes (2 bezel directions + 4 corner pieces + 3 internal pieces)
-- Character idling and walking (5 frames)
+. Floor grate tile (1)
+. Water debris (2)
+. Pipe (2 directions + 2 direction-couplings 4 corner pieces)
+. Monitor (2 bezel directions + 4 corner pieces)
+. Server boxes (2 bezel directions + 4 corner pieces + 3 internal pieces)
+. Drips
+. Security camera
+. Character
+
+Animations
+. Character idling and walking (5 frames)
+- Sparks
+- Splashes
+- Blinking lights
 - Drips
-- Animated blinking lights
-- Server screens
-- Security camera
+. Security camera panning
+- Animated water at edges of obstacles / platforms
 
 Tech
 - Camera for pool reflection
@@ -30,11 +36,16 @@ Tech
 - Layer-sorting
 - Camera for security monitor
 - Scanlines
-- Walk animation
-- Idle animation
+. Walk animation
+. Idle animation
 - Palette animation for blinking lights, sparks, and spray
 - Colour ramp animation for fades
 - Parallax for server layers in background
+- Player walking on platform
+- Sparks
+- Spark palette
+- Spray palette
+- Security camera tracking
 
 Pre-reqs
 . Multi-camera rendering
