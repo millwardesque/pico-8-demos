@@ -1,157 +1,232 @@
 pico-8 cartridge // http://www.pico-8.com
 version 8
 __lua__
-
-animatables = {}
-
+scene = {}
 player = nil
 
 function _init()
- -- create player
- local player_anims = {
-  idle = { 32, 32, 32, 32, 33, 33, 33, 33 },
-  walk = { 33, 34, 36, 35, }
- }
- player = make_anim_object(utils.cell_to_world(make_vec2(4, 12)), make_anim_controller(8, player_anims))
- player.anim_controller.current_animation = "idle";
- add(animatables, player);
+	-- create player
+	local player_anims = {
+		idle = { 32, 32, 32, 32, 33, 33, 33, 33 },
+		walk = { 33, 34, 36, 35, }
+	}
+	player = make_game_object(utils.cell_to_world(make_vec2(4, 12)))
+	attach_anim_spr_controller(player, 8, player_anims, "idle")
+	player.draw = function (self)
+		draw_anim_spr_controller(self.anim_controller, self.position)
+	end
+	player.update = function (self)
+		update_anim_spr_controller(self.anim_controller)
+	end
 
- -- create security camera
- local security_cam_anims = {
-  pan = { 23, 25, 23, 24, }
- }
- local security_cam = make_anim_object(utils.cell_to_world(make_vec2(8, 1)), make_anim_controller(32, security_cam_anims))
- security_cam.anim_controller.current_animation = "pan"
- add(animatables, security_cam)
+	add(scene, player);
+
+	-- create security camera
+	local security_cam_anims = {
+		pan = { 23, 25, 23, 24, }
+	}
+	local security_cam = make_game_object(utils.cell_to_world(make_vec2(8, 1)))
+	attach_anim_spr_controller(security_cam, 32, security_cam_anims, "pan")
+	security_cam.draw = function (self)
+		draw_anim_spr_controller(self.anim_controller, self.position)
+	end
+	security_cam.update = function (self)
+		update_anim_spr_controller(self.anim_controller)
+	end
+	add(scene, security_cam)
+
+	local server_palettes = {
+		{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
+		{ 0, 1, 8, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
+		{ 0, 1, 8, 11, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
+		{ 0, 1, 2, 11, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
+	}
+	local server = make_game_object(utils.cell_to_world(make_vec2(6, 12)))
+	attach_anim_pal_controller(server, 26, 32, server_palettes)
+	server.draw = function (self)
+		draw_anim_pal_controller(self.anim_controller, self.position)
+	end
+	server.update = function (self)
+		update_anim_pal_controller(self.anim_controller)
+	end
+	add(scene, server)
 end
 
 function _update()
- for animatable in all(animatables) do
-  anim_controller_update(animatable.anim_controller)
- end
+	for game_obj in all(scene) do
+		if (game_obj.update) then 
+			game_obj.update(game_obj)
+		end
+	end
 end
 
 function _draw()
- cls()
+	cls()
 
- map(0, 0, 0, 0, 128, 64) -- draw the whole map and let the clipping region remove unnecessary bits
+	map(0, 0, 0, 0, 128, 64) -- draw the whole map and let the clipping region remove unnecessary bits
 
- for animatable in all(animatables) do
-  anim_controller_draw(animatable.anim_controller, animatable.top_left)
- end
- 
- print("cpu: "..stat(1))
+	for game_obj in all(scene) do
+		if (game_obj.draw) then
+			game_obj.draw(game_obj)
+		end
+	end
+	
+	print("cpu: "..stat(1))
 end
 
-function make_anim_object(top_left, anim_controller)
- local actor = {
-  top_left = top_left,
-  anim_controller = anim_controller
- }
- return actor;
+function make_game_object(position)
+	local game_obj = {
+		position = position
+	}
+	return game_obj
 end
 
-function make_anim_controller(frames_per_cell, animations)
- local table = {
-  current_animation = nil,
-  current_cell = 1,
-  frames_per_cell = frames_per_cell,
-  current_frame = 1,
-  animations = animations
- }
- return table
+-- Animated sprite controller
+function attach_anim_spr_controller(game_obj, frames_per_cell, animations, start_anim)
+	game_obj.anim_controller = {
+		current_animation = start_anim,
+		current_cell = 1,
+		frames_per_cell = frames_per_cell,
+		current_frame = 1,
+		animations = animations
+	}
+	return game_obj
 end
 
-function anim_controller_update(controller)
- controller.current_frame += 1
- if (controller.current_frame > controller.frames_per_cell) then
-  controller.current_frame = 1
+function update_anim_spr_controller(controller)
+	controller.current_frame += 1
+	if (controller.current_frame > controller.frames_per_cell) then
+		controller.current_frame = 1
 
-  if (controller.current_animation != nil and controller.current_cell != nil) then
-   controller.current_cell += 1
-   if (controller.current_cell > #controller.animations[controller.current_animation]) then
-    controller.current_cell = 1
-   end
-  end
- end
+		if (controller.current_animation != nil and controller.current_cell != nil) then
+			controller.current_cell += 1
+			if (controller.current_cell > #controller.animations[controller.current_animation]) then
+				controller.current_cell = 1
+			end
+		end
+	end
 end
 
-function anim_controller_draw(controller, top_left)
- -- color(7)
- -- print("frame: "..controller.current_frame.." / "..controller.frames_per_cell)
+function draw_anim_spr_controller(controller, position)
+	color(7)
+	print("frame: "..controller.current_frame.." / "..controller.frames_per_cell)
 
- if (controller.current_animation != nil and controller.current_cell != nil) then
-  -- print("cell: "..controller.animations[controller.current_animation][controller.current_cell].." ("..controller.current_cell.." / "..#controller.animations[controller.current_animation]..")")
-  spr(controller.animations[controller.current_animation][controller.current_cell], top_left.x, top_left.y)
- end
+	if (controller.current_animation != nil and controller.current_cell != nil) then
+		print("cell: "..controller.animations[controller.current_animation][controller.current_cell].." ("..controller.current_cell.." / "..#controller.animations[controller.current_animation]..")")
+		spr(controller.animations[controller.current_animation][controller.current_cell], position.x, position.y)
+	end
+end
+
+-- Animated palette controller
+function attach_anim_pal_controller(game_obj, sprite, frames_per_palette, palettes)
+	game_obj.anim_controller = {
+		sprite = sprite,
+		current_palette = 1,
+		frames_per_palette = frames_per_palette,
+		current_frame = 1,
+		palettes = palettes
+	}
+	return game_obj
+end
+
+function update_anim_pal_controller(controller)
+	controller.current_frame += 1
+	if (controller.current_frame > controller.frames_per_palette) then
+		controller.current_frame = 1
+
+		if (controller.current_palette != nil) then
+			controller.current_palette += 1
+			if (controller.current_palette > #controller.palettes) then
+				controller.current_palette = 1
+			end
+		end
+	end
+end
+
+function draw_anim_pal_controller(controller, position)
+	color(7)
+	print("frame: "..controller.current_frame.." / "..controller.frames_per_palette)
+
+	if (controller.sprite != nil and controller.current_palette != nil) then
+		print("pal: "..controller.current_palette.." / "..#controller.palettes)
+
+		-- Set the palette
+		for i = 0, 15 do
+			pal(i, controller.palettes[controller.current_palette][i + 1])
+		end
+
+		-- Draw the sprite
+		spr(controller.sprite, position.x, position.y)
+
+		-- Reset the palette
+		pal()
+	end
 end
 
 -- 2d vector
 local vec2_meta = {}
 function vec2_meta.__add(a, b)
- return make_vec2(a.x + b.x, a.y + b.y)
+	return make_vec2(a.x + b.x, a.y + b.y)
 end
 
 function vec2_meta.__sub(a, b)
- return make_vec2(a.x - b.x, a.y - b.y)
+	return make_vec2(a.x - b.x, a.y - b.y)
 end
 
 function vec2_meta.__mul(a, b)
- if type(a) == "number" then
-  return make_vec2(a * b.x, a * b.y)
- elseif type(b) == "number" then
-  return make_vec2(b * a.x, b * a.y)
- else
-  return make_vec2(a.x * b.x, a.y * b.y)
- end
+	if type(a) == "number" then
+		return make_vec2(a * b.x, a * b.y)
+	elseif type(b) == "number" then
+		return make_vec2(b * a.x, b * a.y)
+	else
+		return make_vec2(a.x * b.x, a.y * b.y)
+	end
 end
 
 function vec2_meta.__div(a, b) 
- make_vec2(a.x / b, a.y / b)
+	make_vec2(a.x / b, a.y / b)
 end
 
 function vec2_meta.__eq(a, b) 
- return a.x == b.x and a.y == b.y
+	return a.x == b.x and a.y == b.y
 end
 
 function make_vec2(x, y) 
- local table = {
-  x = x,
-  y = y,
- }
- setmetatable(table, vec2_meta)
- return table;
+	local table = {
+		x = x,
+		y = y,
+	}
+	setmetatable(table, vec2_meta)
+	return table;
 end
 
 function vec2_magnitude(v)
- return sqrt(v.x ^ 2 + v.y ^ 2)
+	return sqrt(v.x ^ 2 + v.y ^ 2)
 end
 
 function vec2_normalized(v) 
- local mag = vec2_magnitude(v)
- return make_vec2(v.x / mag, v.y / mag)
+	local mag = vec2_magnitude(v)
+	return make_vec2(v.x / mag, v.y / mag)
 end
 
-world_config = {
- cell_width = 8,
- cell_height = 8,
-}
-
+-- General utilities.
 utils = {}
---[[
-converts a world position to map cell coords
-]]
+
+-- converts a world position to map cell coords
 utils.world_to_cell = function(world)
- return make_vec2(flr(world.x / world_config.cell_width), flr(world.y / world_config.cell_height))
+	return make_vec2(flr(world.x / config.cell_width), flr(world.y / config.cell_height))
 end
 
---[[
-converts a map cell coord to four world positions corresponding to its corners
-]]
+-- converts a map cell coord to four world positions corresponding to its corners
 utils.cell_to_world = function(cell)
- return make_vec2(cell.x * world_config.cell_width, cell.y * world_config.cell_height)
+	return make_vec2(cell.x * config.cell_width, cell.y * config.cell_height)
 end
 
+-- world configuration info
+config = {
+	cell_width = 8,
+	cell_height = 8,
+}
 __gfx__
 00000000055555500000000000000000500000003303055550000000330300500300005350000000505000050000000033030050000001533510000000000000
 0000000055155155000d0000d0000000555555550330005055555555033000053000005055555500550000000555555503300055000001533510000000000000
