@@ -72,11 +72,11 @@ function _update()
 
 	if (vec2_magnitude(player_dir) > 0) then
 		if (player.anim_controller.current_animation != "walk") then
-			player.anim_controller.current_animation = "walk"
+			set_anim_spr_animation(player.anim_controller, "walk")
 		end
 	else
 		if (player.anim_controller.current_animation != "idle") then
-			player.anim_controller.current_animation = "idle"
+			set_anim_spr_animation(player.anim_controller, "idle")
 		end
 	end
 
@@ -161,6 +161,12 @@ function update_anim_spr_controller(controller)
 			end
 		end
 	end
+end
+
+function set_anim_spr_animation(controller, animation)
+	controller.current_frame = 0
+	controller.current_cell = 1
+	controller.current_animation = animation
 end
 
 function draw_anim_spr_controller(controller, position, cam)
