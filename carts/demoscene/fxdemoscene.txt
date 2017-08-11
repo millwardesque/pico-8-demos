@@ -33,19 +33,21 @@ Animations
 Tech
 - Camera for pool reflection
 - Y-sorting
-. Camera for security monitor
 - Zoom/scale version of map()
 - Scanlines
-. Walk animation
-. Idle animation
-. Palette animation for blinking lights, sparks, and spray
 - Colour ramp animation for fades
 - Parallax for server layers in background
-- Player walking on platform
 - Sparks
 - Spark palette
 - Spray palette
 - Security camera tracking
+- Scripted player behaviour
+. Walk animation
+. Idle animation
+. Palette animation for blinking lights, sparks, and spray
+. Player walking on platform
+. Camera for security monitor
+
 
 Pre-reqs
 . Multi-camera rendering
