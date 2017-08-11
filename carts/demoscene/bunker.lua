@@ -43,23 +43,41 @@ function _init()
 	add(cameras, make_camera(make_vec2(0, 0), 128, 128, make_vec2(0, 0), 1))
 
 	local follow_cam = make_camera(utils.cell_to_world(make_vec2(5, 2)), 6 * config.cell_width, 4 * config.cell_height, make_vec2(0, 0), 1)
-	follow_cam.target = player.position
+	follow_cam.target = player
 	add(cameras, follow_cam)
 end
 
 function _update()
 	local move_speed = 1
+	local player_dir = make_vec2(0, 0)
 	if btn(0) then
-		player.position.x -= move_speed
+		player_dir.x -= move_speed
 	end
 	if btn(1) then
-		player.position.x += move_speed
+		player_dir.x += move_speed
 	end
 	if btn(2) then
-		player.position.y -= move_speed
+		player_dir.y -= move_speed
 	end
 	if btn(3) then
-		player.position.y += move_speed
+		player_dir.y += move_speed
+	end
+
+	if (player_dir.x < 0) then
+		player.anim_controller.flip_x = true
+	elseif (player_dir.x > 0) then
+		player.anim_controller.flip_x = false
+	end
+	player.position += player_dir
+
+	if (vec2_magnitude(player_dir) > 0) then
+		if (player.anim_controller.current_animation != "walk") then
+			player.anim_controller.current_animation = "walk"
+		end
+	else
+		if (player.anim_controller.current_animation != "idle") then
+			player.anim_controller.current_animation = "idle"
+		end
 	end
 
 	for game_obj in all(scene) do
@@ -124,7 +142,9 @@ function attach_anim_spr_controller(game_obj, frames_per_cell, animations, start
 		current_cell = 1,
 		frames_per_cell = frames_per_cell,
 		current_frame = 1 + start_frame_offset,
-		animations = animations
+		animations = animations,
+		flip_x = false,
+		flip_y = false,
 	}
 	return game_obj
 end
@@ -149,7 +169,7 @@ function draw_anim_spr_controller(controller, position, cam)
 
 	if (controller.current_animation != nil and controller.current_cell != nil) then
 		-- print("cell: "..controller.animations[controller.current_animation][controller.current_cell].." ("..controller.current_cell.." / "..#controller.animations[controller.current_animation]..")")
-		render.draw_sprite(controller.animations[controller.current_animation][controller.current_cell], 1, 1, position, cam.zoom, false, false) 
+		render.draw_sprite(controller.animations[controller.current_animation][controller.current_cell], 1, 1, position, cam.zoom, controller.flip_x, controller.flip_y) 
 	end
 end
 
@@ -160,7 +180,9 @@ function attach_anim_pal_controller(game_obj, sprite, frames_per_palette, palett
 		current_palette = 1,
 		frames_per_palette = frames_per_palette,
 		current_frame = 1 + start_frame_offset,
-		palettes = palettes
+		palettes = palettes,
+		flip_x = false,
+		flip_y = false,
 	}
 	return game_obj
 end
@@ -192,7 +214,7 @@ function draw_anim_pal_controller(controller, position, cam)
 		end
 
 		-- Draw the sprite
-		render.draw_sprite(controller.sprite, 1, 1, position, cam.zoom, false, false) 
+		render.draw_sprite(controller.sprite, 1, 1, position, cam.zoom, controller.flip_x, controller.flip_y) 
 
 		-- Reset the palette
 		pal()
@@ -224,8 +246,8 @@ end
 function camera_update(cam)
  if cam.target != nil then
   -- centre the camera on the target
-  cam.shoot_pos.x = cam.target.x - flr(cam.draw_width / 2)
-  cam.shoot_pos.y = cam.target.y - flr(cam.draw_height / 2)
+  cam.shoot_pos.x = cam.target.position.x - flr(cam.draw_width / 2)
+  cam.shoot_pos.y = cam.target.position.y - flr(cam.draw_height / 2)
  end
 end
 
