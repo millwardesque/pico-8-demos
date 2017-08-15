@@ -117,7 +117,7 @@ end
 function attach_scanlines(cam, sprite, duration, colour, highlight_colour) 
 	local camera_palettes = {
 		{0, colour, 0, 0, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 2, 3, 4 },
-		{0, 0, colour, 0, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1, 3, 4 },
+		{0, 0, colour, 0, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1, 2, 3, 4 },
 		{0, 0, 0, highlight_colour, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1, 2, 4 },
 		{0, 0, 0, 0, colour, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1, 2, 3 },
 	}

@@ -34,7 +34,7 @@ Tech
 - Camera for pool reflection
 - Y-sorting
 - Zoom/scale version of map()
-- Scanlines
+. Scanlines
 - Colour ramp animation for fades
 - Parallax for server layers in background
 - Sparks
