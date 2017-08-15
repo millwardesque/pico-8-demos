@@ -44,6 +44,7 @@ function _init()
 
 	local follow_cam = make_camera(utils.cell_to_world(make_vec2(5, 2)), 6 * config.cell_width, 4 * config.cell_height, make_vec2(0, 0), 1)
 	follow_cam.target = player
+	attach_scanlines(follow_cam, 27, 8, 3, 11)
 	add(cameras, follow_cam)
 end
 
@@ -108,6 +109,47 @@ function _draw()
 	end
 	
 	print("cpu: "..stat(1))
+end
+
+function attach_scanlines(cam, sprite, duration, colour, highlight_colour) 
+	local camera_palettes = {
+		{0, colour, 0, 0, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 2, 3, 4 },
+		{0, 0, colour, 0, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1, 3, 4 },
+		{0, 0, 0, highlight_colour, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1, 2, 4 },
+		{0, 0, 0, 0, colour, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1, 2, 3 },
+	}
+	attach_anim_pal_controller(cam, sprite, duration, camera_palettes, 0)
+	cam.effect_update = function(self)
+		update_anim_pal_controller(self.anim_controller)
+	end
+	cam.effect_draw = function (self)
+		palt()
+
+		-- Set the palette
+		for i = 0, 15 do
+			pal(i, self.anim_controller.palettes[self.anim_controller.current_palette][i + 1])
+		end
+
+		-- Set the palette transparencies
+		for i = 17, #self.anim_controller.palettes[self.anim_controller.current_palette] do
+			palt(self.anim_controller.palettes[self.anim_controller.current_palette][i], true)
+		end
+
+		local start_pos = utils.world_to_cell(cam.draw_pos)
+		local end_pos = utils.world_to_cell(cam.draw_pos + make_vec2(cam.draw_width, cam.draw_height)) - make_vec2(1, 1)
+
+		-- Draw the sprite
+		for y = start_pos.y, end_pos.y do
+			for x = start_pos.x, end_pos.x do 
+				local pos = utils.cell_to_world(make_vec2(x, y))
+				spr(self.anim_controller.sprite, pos.x, pos.y)
+			end
+		end
+
+		-- Reset the palette
+		pal()
+		palt()
+	end
 end
 
 function make_server(sprite, position, blink_duration, start_frame_offset)
@@ -245,8 +287,12 @@ function camera_draw_start(cam)
 end
 
 function camera_draw_end(cam)
- camera()
- clip()
+	camera()
+	clip()
+
+	if (cam.effect_draw) then
+		cam.effect_draw(cam)
+	end
 end
 
 function camera_update(cam)
@@ -254,6 +300,10 @@ function camera_update(cam)
   -- centre the camera on the target
   cam.shoot_pos.x = cam.target.position.x - flr(cam.draw_width / 2)
   cam.shoot_pos.y = cam.target.position.y - flr(cam.draw_height / 2)
+ end
+
+ if cam.effect_update then
+ 	cam.effect_update(cam)
  end
 end
 
