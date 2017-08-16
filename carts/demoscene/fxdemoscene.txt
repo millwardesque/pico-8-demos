@@ -1,3 +1,4 @@
+FIRST PHASE:
 Setting: Abandoned underground fortress
 Reflective pool in foreground with objects poking out
 Character walking across metal platform 
@@ -48,9 +49,14 @@ Tech
 . Player walking on platform
 . Camera for security monitor
 
-
 Pre-reqs
 . Multi-camera rendering
 . Y-sorting
 . Fade in / out
 . Palette animation
+
+SECOND PHASE
+Player falls in darkness, only eyes are visible
+Player flicks on flashlight to illuminate spot in front and security camera
+When player walks in view of security camera, security monitor turns on
+Security monitor turning on lights the whole room up
