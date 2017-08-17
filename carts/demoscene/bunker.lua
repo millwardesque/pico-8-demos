@@ -51,7 +51,7 @@ function _init()
 	local follow_cam = make_camera(utils.cell_to_world(make_vec2(5, 2)), 6 * config.cell_width, 4 * config.cell_height, make_vec2(0, 0), 1)
 	follow_cam.target = player
 	attach_scanlines(follow_cam, 27, 8, 3, 11)
-	-- @DEBUG add(cameras, follow_cam)
+	add(cameras, follow_cam)
 
 	-- Near parallax camera
 	local near_parallax_cam = make_camera(make_vec2(0, 0), 128, 128, make_vec2(0, 0), 1, "fg_near");
