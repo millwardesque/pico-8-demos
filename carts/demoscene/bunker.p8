@@ -55,12 +55,6 @@ function _init()
 	follow_cam.target = player
 	attach_scanlines(follow_cam, 27, 8, 3, 11)
 	add(cameras, follow_cam)
-
-	-- Near parallax camera
-	local near_parallax_cam = make_camera(make_vec2(0, 0), 128, 128, make_vec2(0, 0), 1, "fg_near");
-	near_parallax_cam.target = player
-	-- @INPROGRESS add(cameras, near_parallax_cam)
-	-- @TODO Change to be attachment of main camera instead of separate camera.
 end
 
 --
