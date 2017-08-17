@@ -12,21 +12,20 @@ parallax_depths = {
 	fg = 0.25,
 }
 
+--
+-- PICO-8 init function
+--
 function _init()
 	-- create player
 	local player_anims = {
 		idle = { 32, 32, 32, 32, 33, 33, 33, 33 },
 		walk = { 33, 34, 36, 35, }
 	}
-	player = make_game_object(utils.cell_to_world(make_vec2(4, 12)))
+	player = make_game_object(utils.cell_to_world(make_vec2(4, 12)), "p1")
 	attach_anim_spr_controller(player, 8, player_anims, "idle", 0)
-	player.draw = function (self, cam, layers)
-		draw_anim_spr_controller(self.anim_controller, self.position, cam, layers)
-	end
 	player.update = function (self)
 		update_anim_spr_controller(self.anim_controller, self)
 	end
-
 	attach_renderable(player, 32)
 	add(scene, player);
 
@@ -34,11 +33,8 @@ function _init()
 	local security_cam_anims = {
 		pan = { 23, 25, 23, 24, }
 	}
-	local security_cam = make_game_object(utils.cell_to_world(make_vec2(8, 1)))
+	local security_cam = make_game_object(utils.cell_to_world(make_vec2(8, 1)), "sec-cam")
 	attach_anim_spr_controller(security_cam, 32, security_cam_anims, "pan", 0)
-	security_cam.draw = function (self, cam, layers)
-		draw_anim_spr_controller(self.anim_controller, self.position, cam, layers)
-	end
 	security_cam.update = function (self)
 		update_anim_spr_controller(self.anim_controller, self)
 	end
@@ -46,10 +42,10 @@ function _init()
 	add(scene, security_cam)
 
 	-- Make some servers
-	add(scene, make_server(26, make_vec2(1, 6), 32, 0))
-	add(scene, make_server(26, make_vec2(3, 6), 32, 4))
-	add(scene, make_server(21, make_vec2(13, 6), 16, 3))
-	add(scene, make_server(21, make_vec2(2, 5), 16, 11))
+	add(scene, make_server(26, make_vec2(1, 6), 32, 0, "server-1"))
+	add(scene, make_server(26, make_vec2(3, 6), 32, 4, "server-2"))
+	add(scene, make_server(21, make_vec2(13, 6), 16, 3, "server-3"))
+	add(scene, make_server(21, make_vec2(2, 5), 16, 11, "server-4"))
 
 	-- create cameras
 
@@ -69,6 +65,9 @@ function _init()
 	-- @TODO Change to be attachment of main camera instead of separate camera.
 end
 
+--
+-- PICO-8 update function
+--
 function _update()
 	local move_speed = 1
 	local player_dir = make_vec2(0, 0)
@@ -86,9 +85,9 @@ function _update()
 	end
 
 	if (player_dir.x < 0) then
-		player.anim_controller.flip_x = true
+		player.renderable.flip_x = true
 	elseif (player_dir.x > 0) then
-		player.anim_controller.flip_x = false
+		player.renderable.flip_x = false
 	end
 	player.position += player_dir
 
@@ -113,35 +112,18 @@ function _update()
 	end
 end
 
+--
+-- PICO-8 draw function
+--
 function _draw()
 	cls()
 	g_renderer.render()
 	print("cpu: "..stat(1))
 end
 
-function _draw_old()
-	cls()
-
-	for cam in all(cameras) do
-		camera_draw_start(cam)
-		
-		local layers = 0
-		if (cam.parallax_name) then
-			layers = layer_flags[cam.parallax_name]
-		end
-		map(0, 0, 0, 0, 128, 64, layers) -- draw the whole map and let the clipping region remove unnecessary bits
-
-		for game_obj in all(scene) do
-			if (game_obj.draw) then
-				game_obj.draw(game_obj, cam, layers)
-			end
-		end
-		camera_draw_end(cam)
-	end
-	
-	print("cpu: "..stat(1))
-end
-
+--
+-- Creates a scanline effect over a camera. Deprecated.
+--
 function attach_scanlines(cam, sprite, duration, colour, highlight_colour) 
 	local camera_palettes = {
 		{0, colour, 0, 0, 0, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 2, 3, 4 },
@@ -183,18 +165,15 @@ function attach_scanlines(cam, sprite, duration, colour, highlight_colour)
 	end
 end
 
-function make_server(sprite, position, blink_duration, start_frame_offset)
+function make_server(sprite, position, blink_duration, start_frame_offset, name)
 	local server_palettes = {
 		{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
 		{ 0, 1, 8, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
 		{ 0, 1, 8, 11, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
 		{ 0, 1, 2, 11, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 },
 	}
-	local server = make_game_object(utils.cell_to_world(position))
+	local server = make_game_object(utils.cell_to_world(position), name)
 	attach_anim_pal_controller(server, sprite, blink_duration, server_palettes, start_frame_offset)
-	server.draw = function (self, cam, layers)
-		draw_anim_pal_controller(self.anim_controller, self.position, cam, layers)
-	end
 	server.update = function (self)
 		update_anim_pal_controller(self.anim_controller, self)
 	end
@@ -202,14 +181,17 @@ function make_server(sprite, position, blink_duration, start_frame_offset)
 	return server
 end
 
-function make_game_object(position)
+function make_game_object(position, name)
 	local game_obj = {
-		position = position
+		position = position,
+		name = name
 	}
 	return game_obj
 end
 
+--
 -- Animated sprite controller
+--
 function attach_anim_spr_controller(game_obj, frames_per_cell, animations, start_anim, start_frame_offset)
 	game_obj.anim_controller = {
 		current_animation = start_anim,
@@ -223,7 +205,7 @@ function attach_anim_spr_controller(game_obj, frames_per_cell, animations, start
 	return game_obj
 end
 
-function update_anim_spr_controller(controller, renderable)
+function update_anim_spr_controller(controller, game_obj)
 	controller.current_frame += 1
 	if (controller.current_frame > controller.frames_per_cell) then
 		controller.current_frame = 1
@@ -236,10 +218,10 @@ function update_anim_spr_controller(controller, renderable)
 		end
 	end
 
-	if (renderable and controller.current_animation != nil and controller.current_cell != nil) then
-		renderable.sprite = controller.animations[controller.current_animation][controller.current_cell]
-	else
-		renderable.sprite = nil
+	if (game_obj.renderable and controller.current_animation != nil and controller.current_cell != nil) then
+		game_obj.renderable.sprite = controller.animations[controller.current_animation][controller.current_cell]
+	elseif (game_obj.renderable) then
+		game_obj.renderable.sprite = nil
 	end
 end
 
@@ -249,17 +231,9 @@ function set_anim_spr_animation(controller, animation)
 	controller.current_animation = animation
 end
 
-function draw_anim_spr_controller(controller, position, cam, layers)
-	-- color(7)
-	-- print("frame: "..controller.current_frame.." / "..controller.frames_per_cell)
-
-	if (controller.current_animation != nil and controller.current_cell != nil and layers == 0) then
-		-- print("cell: "..controller.animations[controller.current_animation][controller.current_cell].." ("..controller.current_cell.." / "..#controller.animations[controller.current_animation]..")")
-		g_renderer.draw_sprite(controller.animations[controller.current_animation][controller.current_cell], 1, 1, position, cam.zoom, controller.flip_x, controller.flip_y) 
-	end
-end
-
+--
 -- Animated palette controller
+--
 function attach_anim_pal_controller(game_obj, sprite, frames_per_palette, palettes, start_frame_offset)
 	game_obj.anim_controller = {
 		sprite = sprite,
@@ -273,7 +247,7 @@ function attach_anim_pal_controller(game_obj, sprite, frames_per_palette, palett
 	return game_obj
 end
 
-function update_anim_pal_controller(controller, renderable)
+function update_anim_pal_controller(controller, game_obj)
 	controller.current_frame += 1
 	if (controller.current_frame > controller.frames_per_palette) then
 		controller.current_frame = 1
@@ -286,30 +260,10 @@ function update_anim_pal_controller(controller, renderable)
 		end
 	end
 
-	if (renderable and controller.current_palette != nil) then
-		renderable.palette = controller.palettes[controller.current_palette];
-	else
-		renderable.palette = nil
-	end
-end
-
-function draw_anim_pal_controller(controller, position, cam, layers)
-	-- color(7)
-	-- print("frame: "..controller.current_frame.." / "..controller.frames_per_palette)
-
-	if (controller.sprite != nil and controller.current_palette != nil and layers == 0) then
-		-- print("pal: "..controller.current_palette.." / "..#controller.palettes)
-
-		-- Set the palette
-		for i = 0, 15 do
-			pal(i, controller.palettes[controller.current_palette][i + 1])
-		end
-
-		-- Draw the sprite
-		g_renderer.draw_sprite(controller.sprite, 1, 1, position, cam.zoom, controller.flip_x, controller.flip_y) 
-
-		-- Reset the palette
-		pal()
+	if (game_obj.renderable and controller.current_palette != nil) then
+		game_obj.renderable.palette = controller.palettes[controller.current_palette];
+	elseif (game_obj.renderable) then
+		game_obj.renderable.palette = nil
 	end
 end
 
@@ -340,6 +294,7 @@ function camera_draw_end(cam)
 	camera()
 	clip()
 
+	-- @TODO Move this elsewhere?
 	if (cam.effect_draw) then
 		cam.effect_draw(cam)
 	end
@@ -423,26 +378,26 @@ function attach_renderable(game_obj, sprite)
 	}
 
 	-- Default rendering function
-	renderable.render = function(renderable, position)
+	renderable.render = function(self, position)
 
 		-- Set the palette
-		if (renderable.palette) then
+		if (self.palette) then
 			-- Set colours
 			for i = 0, 15 do
-				pal(i, renderable.palette[i + 1])
+				pal(i, self.palette[i + 1])
 			end
 
 			-- Set transparencies
-			for i = 17, #self.anim_controller.palettes[self.anim_controller.current_palette] do
-				palt(self.anim_controller.palettes[self.anim_controller.current_palette][i], true)
+			for i = 17, #self.palette do
+				palt(self.palette[i], true)
 			end
 		end
 
 		-- Draw
-		g_renderer.spr(renderable.sprite, position.x, position.y, renderable.sprite_width, renderable.sprite_height, renderable.flip_x, renderable.flip_y)
+		g_renderer.spr(self.sprite, position.x, position.y, self.sprite_width, self.sprite_height, self.flip_x, self.flip_y)
 
 		-- Reset the palette
-		if (renderable.palette) then
+		if (self.palette) then
 			pal()
 			palt()
 		end
@@ -479,7 +434,8 @@ g_renderer.render = function()
 		end
 	end
 
-	-- @TODO Y-sort renderables
+	-- Y-sort renderables
+	quicksort_y(renderables)
 
 	-- Draw the scene for each camera
 	for camera in all(cameras) do
@@ -567,6 +523,48 @@ g_renderer.draw_sprite = function(sprite, sprite_width, sprite_height, dest, sca
 
 		sspr(sx, sy, sprite_width * config.cell_width, sprite_height * config.cell_height, dest.x, dest.y, sprite_width * config.cell_width * scale, sprite_height * config.cell_height * scale, flip_x, flip_y)
 	end
+end
+
+--
+-- Y-sort a renderable array
+-- 
+function quicksort_y(list)
+	quicksort_y_helper(list, 1, #list)
+end
+
+--
+-- Helper function for Y-sorting a list
+function quicksort_y_helper(list, low, high)
+	if (low < high) then
+		local p = quicksort_y_partition(list, low, high)
+		quicksort_y_helper(list, low, p - 1)
+		quicksort_y_helper(list, p + 1, high)
+	end
+end
+
+--
+-- Partition a list
+--
+function quicksort_y_partition(list, low, high)
+	local pivot = list[high]
+	local i = low - 1
+	local temp
+	for j = low, high - 1 do
+		if (list[j].position.y < pivot.position.y) then
+			i += 1
+			temp = list[j]
+			list[j] = list[i]
+			list[i] = temp
+ 		end
+	end
+
+	if (list[high].position.y < list[i + 1].position.y) then
+		temp = list[high]
+		list[high] = list[i + 1]
+		list[i + 1] = temp
+	end
+
+	return i + 1
 end
 
 -- General utilities.
