@@ -2,14 +2,9 @@ scene = {}
 cameras = {}
 player = nil
 layer_flags = {
-	bg = 1,
-	normal = 2,
-	fg = 4,
-}
-parallax_depths = {
-	bg = 2.5,
-	normal = 1,
-	fg = 0.25,
+	{ flag_id = 0, name = "bg", depth = 2.5, layer_mask = 1 },
+	{ flag_id = 1, name = "normal", depth = 1.0, layer_mask = 2 },
+	{ flag_id = 2, name = "fg", depth = 0.25, layer_mask = 4 },
 }
 
 --
@@ -56,7 +51,7 @@ function _init()
 	local follow_cam = make_camera(utils.cell_to_world(make_vec2(5, 2)), 6 * config.cell_width, 4 * config.cell_height, make_vec2(0, 0), 1)
 	follow_cam.target = player
 	attach_scanlines(follow_cam, 27, 8, 3, 11)
-	add(cameras, follow_cam)
+	-- @DEBUG add(cameras, follow_cam)
 
 	-- Near parallax camera
 	local near_parallax_cam = make_camera(make_vec2(0, 0), 128, 128, make_vec2(0, 0), 1, "fg_near");
@@ -281,8 +276,8 @@ function make_camera(draw_pos, draw_width, draw_height, shoot_pos, zoom)
  	}
 	return t
 end
-function camera_draw_start(cam, layer_name)
-	local parallax_scale = parallax_depths[layer_name]
+function camera_draw_start(cam, layer)
+	local parallax_scale = layer.depth
 	local cam_x = (cam.shoot_pos.x - cam.draw_pos.x) / parallax_scale
 	local cam_y = (cam.shoot_pos.y - cam.draw_pos.y) / parallax_scale
 
@@ -441,25 +436,28 @@ g_renderer.render = function()
 	for camera in all(cameras) do
 		g_renderer.active_camera = camera
 
-		-- Render each layer
-		for layer_name, layer_id in pairs(layer_flags) do
+		-- Render each layer  
+		for i = 1, #layer_flags do
+			local layer = layer_flags[i]
+			print("C: "..layer.name.." ("..layer.flag_id..")")
+
 			-- Load the camera settings
-			camera_draw_start(camera, layer_name)
+			camera_draw_start(camera, layer)
 
 			-- @TODO rectfill the clipped screen first?
 
 			-- Draw the map
-			g_renderer.map(0, 0, 0, 0, 128, 64, layer_id) -- draw the whole map and let the clipping region remove unnecessary bits
+			g_renderer.map(0, 0, 0, 0, 128, 64, layer.layer_mask) -- draw the whole map and let the clipping region remove unnecessary bits
 
 			for game_obj in all(renderables) do
 				-- Only render sprites on the active layer
-				if (fget(game_obj.renderable.sprite, layer_id)) then
+				if (fget(game_obj.renderable.sprite, layer.flag_id)) then
 					game_obj.renderable.render(game_obj.renderable, game_obj.position)
 				end
 			end
 
 			-- Clean up the camera settings
-			camera_draw_end(camera, layer_name)
+			camera_draw_end(camera)
 		end
 	end
 	g_renderer.active_camera = nil
