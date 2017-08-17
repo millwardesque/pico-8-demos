@@ -96,6 +96,10 @@ function _update()
 		end
 	end
 
+	if btnp(4) then
+		utils.show_debug = not utils.show_debug
+	end
+
 	for game_obj in all(scene) do
 		if (game_obj.update) then 
 			game_obj.update(game_obj)
@@ -113,7 +117,8 @@ end
 function _draw()
 	cls()
 	g_renderer.render()
-	print("cpu: "..stat(1))
+
+	utils.log("cpu: "..stat(1))
 end
 
 --
@@ -439,7 +444,7 @@ g_renderer.render = function()
 		-- Render each layer  
 		for i = 1, #layer_flags do
 			local layer = layer_flags[i]
-			print("C: "..layer.name.." ("..layer.flag_id..")")
+			utils.log("C: "..layer.name.." ("..layer.flag_id..")")
 
 			-- Load the camera settings
 			camera_draw_start(camera, layer)
@@ -466,6 +471,10 @@ g_renderer.render = function()
 	for game_obj in all(post_renderables) do
 		game_obj.post_render()
 	end
+
+	-- Draw debug log
+	utils.render_log()
+	utils.clear_log()
 end
 
 --
@@ -566,7 +575,26 @@ function quicksort_y_partition(list, low, high)
 end
 
 -- General utilities.
-utils = {}
+utils = {
+	show_debug = false,
+	log_data = {}
+}
+
+utils.log = function(message)
+	add(utils.log_data, message)
+end
+
+utils.render_log = function()
+	if (utils.show_debug) then
+		for i = 1, #utils.log_data do
+			print(utils.log_data[i])
+		end
+	end
+end
+
+utils.clear_log = function()
+	utils.log_data = {}
+end
 
 -- converts a world position to map cell coords
 utils.world_to_cell = function(world)
