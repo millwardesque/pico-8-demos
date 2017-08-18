@@ -39,3 +39,9 @@
 			- Render all layer sprites in the render array
 	- Collect all post-processing effects in an array
 		- Call each post-processing effect in order
+
+## TODO
+- Convert TV to sprites instead of bg
+- Extend pipes behind TV sprite
+- Reflection
+- Relocate TV lower (or walkway higher)
