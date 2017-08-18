@@ -1,8 +1,9 @@
 scene = {}
 cameras = {}
+main_cam = nil
 player = nil
 layer_flags = {
-	{ flag_id = 0, name = "bg", depth = 2.5, layer_mask = 1 },
+	{ flag_id = 0, name = "bg", depth = 1.25, layer_mask = 1 },
 	{ flag_id = 1, name = "normal", depth = 1.0, layer_mask = 2 },
 	{ flag_id = 2, name = "fg", depth = 0.25, layer_mask = 4 },
 }
@@ -39,16 +40,18 @@ function _init()
 	-- Make some servers
 	add(scene, make_server(26, make_vec2(1, 6), 32, 0, "server-1"))
 	add(scene, make_server(26, make_vec2(3, 6), 32, 4, "server-2"))
-	add(scene, make_server(21, make_vec2(13, 6), 16, 3, "server-3"))
+	add(scene, make_server(21, make_vec2(13, 7  ), 16, 3, "server-3"))
 	add(scene, make_server(21, make_vec2(2, 5), 16, 11, "server-4"))
 
 	-- create cameras
 
 	-- Main camera
-	add(cameras, make_camera(make_vec2(0, 0), 128, 128, make_vec2(0, 0), 1))
+	main_cam = make_camera(make_vec2(0, 0), 128, 128, make_vec2(0, 0), 1, false)
+	main_cam.target = player
+	add(cameras, main_cam)
 
 	-- Security camera
-	local follow_cam = make_camera(utils.cell_to_world(make_vec2(5, 2)), 6 * config.cell_width, 4 * config.cell_height, make_vec2(0, 0), 1)
+	local follow_cam = make_camera(utils.cell_to_world(make_vec2(5, 2)), 6 * config.cell_width, 4 * config.cell_height, make_vec2(0, 0), 1, true)
 	follow_cam.target = player
 	attach_scanlines(follow_cam, 27, 8, 3, 11)
 	add(cameras, follow_cam)
@@ -142,14 +145,18 @@ function attach_scanlines(cam, sprite, duration, colour, highlight_colour)
 			palt(self.anim_controller.palettes[self.anim_controller.current_palette][i], true)
 		end
 
-		local start_pos = utils.world_to_cell(cam.draw_pos)
-		local end_pos = utils.world_to_cell(cam.draw_pos + make_vec2(cam.draw_width, cam.draw_height)) - make_vec2(1, 1)
+		local draw_pos = cam.draw_pos
+		if cam.anchor_to_world then
+			draw_pos -= main_cam.shoot_pos
+		end
+
+		local start_pos = draw_pos
+		local end_pos = draw_pos + make_vec2(cam.draw_width - config.cell_width, cam.draw_height - config.cell_height)
 
 		-- Draw the sprite
-		for y = start_pos.y, end_pos.y do
-			for x = start_pos.x, end_pos.x do 
-				local pos = utils.cell_to_world(make_vec2(x, y))
-				spr(self.anim_controller.sprite, pos.x, pos.y)
+		for y = start_pos.y, end_pos.y, config.cell_height do
+			for x = start_pos.x, end_pos.x, config.cell_width do 
+				spr(self.anim_controller.sprite, x, y)
 			end
 		end
 
@@ -264,24 +271,36 @@ end
 --
 -- Camera
 --
-function make_camera(draw_pos, draw_width, draw_height, shoot_pos, zoom)
+function make_camera(draw_pos, draw_width, draw_height, shoot_pos, zoom, anchor_to_world)
 	local t = {
  		draw_pos = draw_pos,
  		draw_width = draw_width,
  		draw_height = draw_height,
  		shoot_pos = shoot_pos,
  		zoom = zoom,
+ 		anchor_to_world = anchor_to_world,
  		target = nil
  	}
 	return t
 end
 function camera_draw_start(cam, layer)
+	local draw_x = cam.draw_pos.x
+	local draw_y = cam.draw_pos.y
+
+	if cam.anchor_to_world then
+		draw_x -= main_cam.shoot_pos.x
+		draw_y -= main_cam.shoot_pos.y
+	end
+
+	local cam_x = cam.shoot_pos.x - draw_x
+	local cam_y = cam.shoot_pos.y - draw_y
+
+	-- Parallax
 	local parallax_scale = layer.depth
-	local cam_x = (cam.shoot_pos.x - cam.draw_pos.x) / parallax_scale
-	local cam_y = (cam.shoot_pos.y - cam.draw_pos.y) / parallax_scale
+	cam_x = cam_x / parallax_scale
 
 	camera(cam_x, cam_y)
-	clip(cam.draw_pos.x, cam.draw_pos.y, cam.draw_width, cam.draw_height)
+	clip(draw_x, draw_y, cam.draw_width, cam.draw_height)
 end
 
 function camera_draw_end(cam)
@@ -295,15 +314,14 @@ function camera_draw_end(cam)
 end
 
 function camera_update(cam)
- if cam.target != nil then
-  -- centre the camera on the target
-  cam.shoot_pos.x = cam.target.position.x - flr(cam.draw_width / 2)
-  cam.shoot_pos.y = cam.target.position.y - flr(cam.draw_height / 2)
- end
-
- if cam.effect_update then
- 	cam.effect_update(cam)
- end
+ 	if cam.target != nil then
+		-- centre the camera on the target
+		cam.shoot_pos.x = cam.target.position.x - flr(cam.draw_width / 2)
+		cam.shoot_pos.y = cam.target.position.y - flr(cam.draw_height / 2)
+ 	end
+	if cam.effect_update then
+		cam.effect_update(cam)
+	end
 end
 
 --

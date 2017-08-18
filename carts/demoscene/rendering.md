@@ -25,6 +25,7 @@
 	- Allows custom sprite- and map-drawing functions to facilitate camera zoom
 - Post-processing effects are game-objects that have a post_render() function
 - Screen transitions can be post-processing effects
+- Camera tracks object within certain bounds.
 
 ## Pipeline
 - Takes place in Renderer.render()
