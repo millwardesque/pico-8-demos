@@ -40,12 +40,9 @@
 		- Call each post-processing effect in order
 
 ## TODO
-- Convert TV to sprites instead of bg
-- Extend pipes behind TV sprite
 - Reflection
-- Relocate TV lower (or walkway higher)
 - Y-sort from foot
 - Screen transitions
 - Noise overlay
 - Map w/ zoom
-- Camera w9th bounds for less motion during player movement
+- Camera with bounds for less motion during player movement

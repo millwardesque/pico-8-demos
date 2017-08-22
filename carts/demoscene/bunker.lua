@@ -17,7 +17,7 @@ function _init()
 		idle = { 32, 32, 32, 32, 33, 33, 33, 33 },
 		walk = { 33, 34, 36, 35, }
 	}
-	player = make_game_object(utils.cell_to_world(make_vec2(4, 12)), "p1")
+	player = make_game_object(utils.cell_to_world(make_vec2(4, 9)), "p1")
 	attach_anim_spr_controller(player, 8, player_anims, "idle", 0)
 	player.update = function (self)
 		update_anim_spr_controller(self.anim_controller, self)
@@ -77,12 +77,14 @@ function _init()
 	-- Main camera
 	main_cam = make_camera(make_vec2(0, 0), 128, 128, make_vec2(0, 0), 1, false, 0)
 	main_cam.target = player
-	add(cameras, main_cam)
 
 	-- Security camera
 	local follow_cam = make_camera(utils.cell_to_world(make_vec2(5, 2)), 6 * config.cell_width, 4 * config.cell_height, make_vec2(0, 0), 1, true, 0)
 	follow_cam.target = player
 	attach_scanlines(follow_cam, 27, 8, 3, 11)
+
+	-- Add the cameras in render order
+	add(cameras, main_cam)
 	add(cameras, follow_cam)
 end
 
