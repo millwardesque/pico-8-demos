@@ -21,8 +21,7 @@
 - Renderable game objects have a render() function and a position
 	- Standard render function takes sprite and (optional) palette
 - Animators are used to set current sprite and palette on renderable game objects
-- Renderer global has function pointers to sprite and map-rendering
-	- Allows custom sprite- and map-drawing functions to facilitate camera zoom
+- Renderer global has wrappers around spr() and map() to handle zoom
 - Post-processing effects are game-objects that have a post_render() function
 - Screen transitions can be post-processing effects
 - Camera tracks object within certain bounds.
@@ -45,3 +44,8 @@
 - Extend pipes behind TV sprite
 - Reflection
 - Relocate TV lower (or walkway higher)
+- Y-sort from foot
+- Screen transitions
+- Noise overlay
+- Map w/ zoom
+- Camera w9th bounds for less motion during player movement
